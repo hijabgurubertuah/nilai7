@@ -62,11 +62,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
                   <img
-                    src="https://i.ibb.co.com/nqfqhc29/kdu.png"
-                    alt="Logo KDU"
+                    src="https://i.ibb.co.com/fYM6GQ11/ipa7.png"
+                    alt="Logo Nilai IPA7"
                     className="w-8 h-8 rounded-lg object-contain"
                   />
-                  <h3 className="text-sm font-black text-white">Instal di iPhone / iPad</h3>
+                  <h3 className="text-sm font-black text-white">Instal Nilai IPA7</h3>
                 </div>
                 <button
                   type="button"

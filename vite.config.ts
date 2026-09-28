@@ -11,12 +11,12 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'kdu.png'],
+        includeAssets: ['favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'ipa7.png'],
         manifest: {
           id: '/',
-          name: 'E-Penilaian Mata Pelajaran IPA',
-          short_name: 'PenilaianIPA',
-          description: 'Aplikasi Penilaian Mata Pelajaran IPA (Ulangan, Tugas, Sikap) SMP Negeri 1 Bengkalis',
+          name: 'Nilai IPA7',
+          short_name: 'Nilai IPA7',
+          description: 'Aplikasi Penilaian Nilai IPA7 SMP Negeri 1 Bengkalis',
           theme_color: '#064e3b',
           background_color: '#064e3b',
           display: 'standalone',
