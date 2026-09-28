@@ -1,0 +1,8 @@
+{
+  "name": "Penilaian IPA 7",
+  "description": "Aplikasi Penilaian mata pelajaran IPA",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
