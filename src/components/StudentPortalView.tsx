@@ -9,6 +9,11 @@ interface StudentPortalViewProps {
   assignmentCount?: number;
   examCount?: number;
   onLogout: () => void;
+  isPreviewMode?: boolean;
+  studentsList?: Student[];
+  onSelectStudent?: (studentId: string) => void;
+  onBackToAdmin?: () => void;
+  onBackToTeacher?: () => void;
 }
 
 export const getScoreColorScheme = (score: number | null) => {
@@ -86,6 +91,11 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
   assignmentCount = 5,
   examCount = 4,
   onLogout,
+  isPreviewMode = false,
+  studentsList = [],
+  onSelectStudent,
+  onBackToAdmin,
+  onBackToTeacher,
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'attitude' | 'assignment' | 'exam'>('all');
 
@@ -119,6 +129,62 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 space-y-4 animate-fadeIn">
+      {/* Banner Khusus Mode Pratinjau Siswa untuk Admin & Guru */}
+      {isPreviewMode && (
+        <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white p-3.5 sm:p-4 rounded-3xl border-2 border-emerald-500/50 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center space-x-3 min-w-0 w-full sm:w-auto">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 font-bold shadow-md">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-300">
+                  Mode Pratinjau Tampilan Siswa
+                </span>
+                <span className="text-[10px] bg-emerald-800 text-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                  Live View
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-100/90 leading-tight">
+                Melihat tampilan persis seperti yang diakses siswa melalui nomor NISN.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 w-full sm:w-auto justify-end shrink-0">
+            {studentsList.length > 0 && onSelectStudent && (
+              <div className="flex items-center space-x-1.5 w-full sm:w-auto">
+                <label className="text-[11px] font-bold text-emerald-200 shrink-0 hidden xs:inline">
+                  Siswa:
+                </label>
+                <select
+                  value={student.id}
+                  onChange={(e) => onSelectStudent(e.target.value)}
+                  className="bg-emerald-950/90 text-white text-xs font-bold px-3 py-2 rounded-xl border border-emerald-400/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-full sm:w-56 cursor-pointer shadow-inner"
+                  title="Pilih siswa lain untuk dipratinjau"
+                >
+                  {studentsList.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {st.name} ({st.className} - {st.nisn})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {onBackToAdmin && (
+              <button
+                type="button"
+                onClick={onBackToAdmin}
+                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer shrink-0"
+              >
+                Panel Admin
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* PALING ATAS: KOTAK NILAI AKHIR MATA PELAJARAN IPA */}
       <div className={`rounded-3xl p-5 sm:p-7 pr-12 sm:pr-14 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4 relative overflow-hidden ${heroStyle.heroBg}`}>
         <div className="text-center sm:text-left space-y-1.5 z-10 min-w-0 flex-1">
@@ -166,9 +232,9 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
 
         <button
           type="button"
-          onClick={onLogout}
+          onClick={isPreviewMode && onBackToAdmin ? onBackToAdmin : onLogout}
           className="absolute top-3 right-3 p-2 bg-black/20 hover:bg-black/30 rounded-xl transition-colors cursor-pointer text-white/90 hover:text-white"
-          title="Keluar / Switch Akun"
+          title={isPreviewMode ? 'Kembali ke Panel Admin' : 'Keluar / Switch Akun'}
         >
           <LogOut className="w-4 h-4" />
         </button>

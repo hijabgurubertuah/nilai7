@@ -51,7 +51,7 @@ import {
   listenToSystemLogs,
 } from './services/firestoreService';
 import { exportAllClassesToExcel } from './utils/excelExport';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, X, GraduationCap } from 'lucide-react';
 
 const SESSION_KEY = 'smpn1bks_session_user';
 
@@ -61,6 +61,7 @@ export default function App() {
   const [teacherCodes, setTeacherCodes] = useState<TeacherCode[]>(DEFAULT_TEACHER_CODES);
   const [schedules, setSchedules] = useState<MeetingSchedule[]>([]);
   const [ipaConfig, setIpaConfig] = useState<IpaGradeConfig>(DEFAULT_IPA_CONFIG);
+  const [previewStudentId, setPreviewStudentId] = useState<string>('');
 
   // Restore login session from device storage if available
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
@@ -570,7 +571,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-emerald-200 selection:text-emerald-900">
       {/* Top Navigation */}
-      {activePage !== 'login' && activePage !== 'student-view' && (
+      {activePage !== 'login' && (activePage !== 'student-view' || currentUser?.role !== 'student') && (
         <Navbar
           currentUser={currentUser}
           activePage={activePage}
@@ -675,18 +676,50 @@ export default function App() {
         )}
 
         {/* Portal Siswa */}
-        {activePage === 'student-view' && currentUser && currentUser.studentData && (
+        {activePage === 'student-view' && currentUser && (
           <div className="pb-16 flex-1">
-            <StudentPortalView
-              student={
-                students.find((s) => s.nisn === currentUser.identifier) ||
-                currentUser.studentData
+            {(() => {
+              const activeStudent =
+                currentUser.role === 'student'
+                  ? students.find((s) => s.nisn === currentUser.identifier) || currentUser.studentData
+                  : students.find((s) => s.id === previewStudentId) || students[0] || currentUser.studentData;
+
+              if (!activeStudent) {
+                return (
+                  <div className="max-w-md mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 text-center space-y-4 shadow-sm">
+                    <GraduationCap className="w-12 h-12 text-slate-400 mx-auto" />
+                    <h3 className="text-base font-black text-slate-800">
+                      Belum Ada Data Siswa
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Silakan tambahkan data siswa terlebih dahulu melalui Panel Admin atau impor spreadsheet.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActivePage('admin-portal')}
+                      className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition-colors cursor-pointer"
+                    >
+                      Kembali ke Panel Admin
+                    </button>
+                  </div>
+                );
               }
-              attitudeMeetingsCount={ipaConfig.attitudeMeetingsCount}
-              assignmentCount={ipaConfig.assignmentCount}
-              examCount={ipaConfig.examCount}
-              onLogout={handleLogout}
-            />
+
+              return (
+                <StudentPortalView
+                  student={activeStudent}
+                  attitudeMeetingsCount={ipaConfig.attitudeMeetingsCount}
+                  assignmentCount={ipaConfig.assignmentCount}
+                  examCount={ipaConfig.examCount}
+                  isPreviewMode={currentUser.role !== 'student'}
+                  studentsList={students}
+                  onSelectStudent={(id) => setPreviewStudentId(id)}
+                  onBackToAdmin={() => setActivePage('admin-portal')}
+                  onBackToTeacher={() => setActivePage('dashboard')}
+                  onLogout={handleLogout}
+                />
+              );
+            })()}
           </div>
         )}
       </main>
@@ -704,7 +737,7 @@ export default function App() {
       />
 
       {/* Footer */}
-      {activePage !== 'login' && activePage !== 'student-view' && (
+      {activePage !== 'login' && (activePage !== 'student-view' || currentUser?.role !== 'student') && (
         <footer className="bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-950 text-emerald-200/90 py-5 border-t border-emerald-850/80 text-center text-xs">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center space-x-2 font-bold">
