@@ -151,6 +151,16 @@ export function listenToTeacherCodes(
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as TeacherCode;
           const key = (data.code || '').trim().toUpperCase();
+          // Filter out and delete deprecated demo codes (GURU2026, GURU7A)
+          if (
+            key === 'GURU2026' ||
+            key === 'GURU7A' ||
+            docSnap.id === 'tc-01' ||
+            docSnap.id === 'tc-03'
+          ) {
+            deleteDoc(docSnap.ref).catch(() => {});
+            return;
+          }
           if (key && !seenCodes.has(key)) {
             seenCodes.add(key);
             list.push({ ...data, id: data.id || docSnap.id });

@@ -107,7 +107,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   isSavingToFirebase = false,
   onDiscardPendingChanges,
 }) => {
-  const [activeTab, setActiveTab] = useState<'spreadsheet' | 'students' | 'scores' | 'teachers' | 'database' | 'schedule'>('scores');
+  const [activeTab, setActiveTab] = useState<'students' | 'scores' | 'teachers' | 'database' | 'schedule'>('scores');
 
   // Scheduling edit states
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
@@ -811,24 +811,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         </div>
       )}
 
-      {/* Tab Navigation - 6 Kolom Proporsional */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 bg-slate-200/80 p-1 rounded-2xl gap-1">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('spreadsheet');
-            setErrorMessage('');
-          }}
-          className={`flex items-center justify-center space-x-1 py-1.5 px-0.5 rounded-xl text-xs font-bold transition-all cursor-pointer truncate ${
-            activeTab === 'spreadsheet'
-              ? 'bg-white text-emerald-800 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span className="truncate ml-1">SPREADSHEET</span>
-        </button>
-
+      {/* Tab Navigation - 5 Kolom Proporsional */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 bg-slate-200/80 p-1 rounded-2xl gap-1">
         <button
           type="button"
           onClick={() => {
@@ -910,113 +894,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         </button>
       </div>
 
-      {/* TAB 1: SPREADSHEET ONLINE SYNC & FILE CSV */}
-      {activeTab === 'spreadsheet' && (
-        <div className="space-y-4">
-          {/* Card Link Spreadsheet */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center space-x-1.5">
-                  <LinkIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Link Spreadsheet</span>
-                </h3>
-              </div>
-
-              {spreadsheetUrl && (
-                <button
-                  type="button"
-                  onClick={handleOpenEditSpreadsheet}
-                  className="inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Buka Spreadsheet</span>
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                Link Spreadsheet / Google Sheets:
-              </label>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <input
-                  type="url"
-                  value={spreadsheetUrl}
-                  onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="flex-1 px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                />
-                <button
-                  type="button"
-                  onClick={handleFetchSpreadsheet}
-                  disabled={isFetchingSheet}
-                  className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 shadow-xs cursor-pointer disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isFetchingSheet ? 'animate-spin' : ''}`} />
-                  <span>{isFetchingSheet ? 'Menarik Data...' : 'Tarik Data ke Memori'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Card Alternatif: Unggah File CSV Manual */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center space-x-1.5">
-                  <UploadCloud className="w-4 h-4 text-slate-600 shrink-0" />
-                  <span>Unggah CSV</span>
-                </h3>
-              </div>
-
-              <button
-                type="button"
-                onClick={downloadSampleCsvTemplate}
-                className="inline-flex items-center space-x-1 px-2.5 py-1 text-slate-600 hover:text-emerald-700 bg-slate-100 rounded-lg text-[11px] font-bold cursor-pointer"
-              >
-                <Download className="w-3 h-3" />
-                <span className="hidden xs:inline">Contoh CSV</span>
-              </button>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              onChange={handleFileChange}
-              className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-            />
-
-            {parsedData && (
-              <div className="space-y-2 pt-1">
-                <div className="text-xs font-bold text-slate-800">
-                  Ditemukan: {parsedData.students.length} Siswa ({parsedData.classes.length} Kelas)
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSyncManualFile}
-                  disabled={isSyncingFile}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
-                >
-                  {isSyncingFile ? 'Memuat...' : 'Muat CSV ke Daftar Siswa (Tanpa Duplikasi)'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: PENGATURAN SISWA, CENTANG SEMUA & NISN */}
+      {/* TAB SISWA: PENGATURAN SISWA, CENTANG SEMUA & SINKRONISASI SPREADSHEET */}
       {activeTab === 'students' && (
         <div className="space-y-3">
-          {/* Floating Bulk Action Bar saat ada siswa yang dicentang */}
+          {/* Floating Bulk Action Bar saat ada siswa yang dicentang - SATU-SATUNYA TOMBOL HAPUS MASSAL */}
           {selectedStudentIds.size > 0 && (
-            <div className="sticky top-20 z-20 p-2.5 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-700 flex items-center justify-between gap-2 animate-fadeIn">
+            <div className="sticky top-16 sm:top-20 z-20 p-2.5 sm:p-3 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-700 flex items-center justify-between gap-2 animate-fadeIn">
               <div className="flex items-center space-x-2 min-w-0 pl-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
                 <span className="text-xs font-bold truncate">
-                  {selectedStudentIds.size} dari {filteredStudents.length} siswa dicentang
+                  <strong className="text-emerald-400 font-black">{selectedStudentIds.size}</strong> dari {filteredStudents.length} siswa dipilih
                 </span>
               </div>
 
@@ -1024,25 +911,25 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <button
                   type="button"
                   onClick={handleClearSelection}
-                  className="px-2.5 py-1.5 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer"
+                  className="px-2.5 py-1.5 text-slate-300 hover:text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={handleBulkDelete}
-                  className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95"
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-md active:scale-95"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
                   <span>
-                    Hapus {selectedStudentIds.size === filteredStudents.length ? 'Semua' : 'Terpilih'} ({selectedStudentIds.size}) Seketika
+                    Hapus {selectedStudentIds.size === filteredStudents.length ? 'Semua' : 'Terpilih'} ({selectedStudentIds.size})
                   </span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Toolbar Search, Centang Semua, Hapus Semua & Tambah Siswa */}
+          {/* Toolbar Search, Centang Semua, Tambah Siswa & Spreadsheet */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1092,20 +979,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <span>Centang Semua ({filteredStudents.length})</span>
               </button>
 
-              {/* Tombol Hapus Semua / Hapus Terpilih langsung di toolbar saat ada siswa yang dicentang */}
-              {selectedStudentIds.size > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBulkDelete}
-                  className="flex items-center space-x-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer shadow-xs active:scale-95 animate-fadeIn"
-                  title="Hapus semua siswa yang dicentang dari Firebase Firestore seketika"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>
-                    Hapus {selectedStudentIds.size === filteredStudents.length ? 'Semua' : 'Terpilih'} ({selectedStudentIds.size})
-                  </span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('spreadsheet-sync-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center justify-center space-x-1 px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer border border-slate-200"
+                title="Gulir langsung ke bagian Sinkronisasi Spreadsheet / CSV di bawah"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Spreadsheet ↓</span>
+              </button>
 
               <button
                 type="button"
@@ -1137,18 +1021,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <span>Centang Semua ({filteredStudents.length})</span>
               </button>
 
-              <div className="flex items-center space-x-1.5">
-                {selectedStudentIds.size > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleBulkDelete}
-                    className="flex items-center space-x-1 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-black cursor-pointer shadow-xs active:scale-95"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Hapus ({selectedStudentIds.size}) Seketika</span>
-                  </button>
-                )}
-              </div>
+              {selectedStudentIds.size > 0 && (
+                <span className="text-[11px] font-bold text-slate-500">
+                  {selectedStudentIds.size} dipilih
+                </span>
+              )}
             </div>
 
             {/* Tampilan Kartu di HP (< sm) dengan Checkbox */}
@@ -1347,6 +1224,108 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </span>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* BAGIAN BAWAH TAB SISWA: SINKRONISASI SPREADSHEET ONLINE & FILE CSV */}
+          <div id="spreadsheet-sync-section" className="space-y-3 pt-3">
+            <div className="flex items-center space-x-2 text-slate-800 px-1">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-800">
+                Impor & Sinkronisasi Spreadsheet / CSV
+              </h3>
+            </div>
+
+            {/* Card Link Spreadsheet */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+                    <LinkIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Link Spreadsheet (Google Sheets)</span>
+                  </h3>
+                </div>
+
+                {spreadsheetUrl && (
+                  <button
+                    type="button"
+                    onClick={handleOpenEditSpreadsheet}
+                    className="inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Buka Spreadsheet</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                  Link Spreadsheet / Google Sheets:
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <input
+                    type="url"
+                    value={spreadsheetUrl}
+                    onChange={(e) => setSpreadsheetUrl(e.target.value)}
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    className="flex-1 px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchSpreadsheet}
+                    disabled={isFetchingSheet}
+                    className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 shadow-xs cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isFetchingSheet ? 'animate-spin' : ''}`} />
+                    <span>{isFetchingSheet ? 'Menarik Data...' : 'Tarik Data ke Memori'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Alternatif: Unggah File CSV Manual */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+                    <UploadCloud className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span>Unggah CSV Manual</span>
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={downloadSampleCsvTemplate}
+                  className="inline-flex items-center space-x-1 px-2.5 py-1 text-slate-600 hover:text-emerald-700 bg-slate-100 rounded-lg text-[11px] font-bold cursor-pointer"
+                >
+                  <Download className="w-3 h-3" />
+                  <span className="hidden xs:inline">Contoh CSV</span>
+                </button>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleFileChange}
+                className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+              />
+
+              {parsedData && (
+                <div className="space-y-2 pt-1">
+                  <div className="text-xs font-bold text-slate-800">
+                    Ditemukan: {parsedData.students.length} Siswa ({parsedData.classes.length} Kelas)
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSyncManualFile}
+                    disabled={isSyncingFile}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    {isSyncingFile ? 'Memuat...' : 'Muat CSV ke Daftar Siswa (Tanpa Duplikasi)'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1596,7 +1575,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   type="text"
                   value={newCodeInput}
                   onChange={(e) => setNewCodeInput(e.target.value.toUpperCase())}
-                  placeholder="Misal: GURU7A"
+                  placeholder="Misal: GURUIPA"
                   required
                   className="w-full px-3 py-2 text-xs uppercase font-mono font-bold tracking-wider rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
                 />

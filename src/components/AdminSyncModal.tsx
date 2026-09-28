@@ -392,7 +392,7 @@ export const AdminSyncModal: React.FC<AdminSyncModalProps> = ({
                     type="text"
                     value={newCodeInput}
                     onChange={(e) => setNewCodeInput(e.target.value.toUpperCase())}
-                    placeholder="Kode (misal: GURU7A)"
+                    placeholder="Kode (misal: GURUIPA)"
                     className="w-full px-3 py-2 text-xs uppercase font-mono font-bold rounded-xl border border-slate-300 bg-white"
                   />
                   <input

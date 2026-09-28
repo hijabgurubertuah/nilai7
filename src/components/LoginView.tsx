@@ -55,7 +55,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }
 
     // 2. Kode Khusus Masuk Sebagai Guru (guru123)
-    if (cleanLower === 'guru123' || cleanLower === 'guru2026') {
+    if (cleanLower === 'guru123') {
       saveLastCode(clean);
       onLoginSuccess({
         role: 'teacher',
