@@ -29,39 +29,63 @@ const SETTINGS_COL = 'app_settings';
 const IPA_CONFIG_DOC = 'ipa_grade_config';
 
 /**
- * Initialize Firestore with default data if empty
+ * Initialize Firestore with default data if empty or missing new classes
  */
 export async function initializeFirestoreIfNeeded(): Promise<boolean> {
   try {
     const classesSnap = await getDocs(collection(db, CLASSES_COL));
     recordQuotaUsage({ reads: classesSnap.size || 1 });
-    if (!classesSnap.empty) {
-      return false; // already seeded
-    }
 
-    const batch = writeBatch(db);
+    const existingClassNames = new Set(
+      classesSnap.docs.map((d) => (d.data().name || '').trim().toUpperCase())
+    );
 
-    // Seed default classes
-    for (const c of DEFAULT_CLASSES) {
-      const ref = doc(db, CLASSES_COL, c.id);
-      batch.set(ref, c);
-    }
+    // Ensure all 6 target classes (7A IPA, 7B IPA, 7C IPA, 7D IPA, 7D TIK, 7E TIK) exist
+    const missingClasses = DEFAULT_CLASSES.filter(
+      (c) => !existingClassNames.has(c.name.trim().toUpperCase())
+    );
 
-    // Seed default teacher login codes
-    for (const tc of DEFAULT_TEACHER_CODES) {
-      const ref = doc(db, TEACHER_CODES_COL, tc.id);
-      batch.set(ref, tc);
-    }
-
-    await batch.commit();
-    recordQuotaUsage({
-      writes: DEFAULT_CLASSES.length + DEFAULT_TEACHER_CODES.length,
-      storageBytes: calculateRealtimeStorageSize(
-        0,
-        DEFAULT_CLASSES.length,
-        DEFAULT_TEACHER_CODES.length
-      ),
+    // Remove legacy placeholder classes like "Kelas 7A", "Kelas 7B", "Kelas 7C"
+    const legacyDocIdsToDelete: string[] = [];
+    classesSnap.docs.forEach((d) => {
+      const dName = (d.data().name || '').trim();
+      if (
+        dName === 'Kelas 7A' ||
+        dName === 'Kelas 7B' ||
+        dName === 'Kelas 7C' ||
+        d.id === 'class-7a' ||
+        d.id === 'class-7b' ||
+        d.id === 'class-7c'
+      ) {
+        legacyDocIdsToDelete.push(d.id);
+      }
     });
+
+    if (missingClasses.length > 0 || legacyDocIdsToDelete.length > 0) {
+      const batch = writeBatch(db);
+      for (const c of missingClasses) {
+        batch.set(doc(db, CLASSES_COL, c.id), cleanObject(c));
+      }
+      for (const legId of legacyDocIdsToDelete) {
+        batch.delete(doc(db, CLASSES_COL, legId));
+      }
+      await batch.commit();
+      recordQuotaUsage({
+        writes: missingClasses.length,
+        deletes: legacyDocIdsToDelete.length,
+      });
+    }
+
+    // Seed default teacher login codes if empty
+    const teacherSnap = await getDocs(collection(db, TEACHER_CODES_COL));
+    if (teacherSnap.empty) {
+      const tBatch = writeBatch(db);
+      for (const tc of DEFAULT_TEACHER_CODES) {
+        tBatch.set(doc(db, TEACHER_CODES_COL, tc.id), cleanObject(tc));
+      }
+      await tBatch.commit();
+    }
+
     return true;
   } catch (error) {
     console.warn('Firestore initial seeding fallback or offline:', error);
@@ -216,11 +240,15 @@ function cleanObject<T extends Record<string, any>>(obj: T): Partial<T> {
 }
 
 /**
- * Generate standard Firestore document ID from NISN
+ * Generate standard Firestore document ID from NISN and optional class
  */
-export function getStudentDocId(nisn: string): string {
-  const clean = nisn.trim().replace(/[^a-zA-Z0-9]/g, '');
-  return `std-${clean}`;
+export function getStudentDocId(nisn: string, classIdentifier?: string): string {
+  const cleanNisn = nisn.trim().replace(/[^a-zA-Z0-9]/g, '');
+  if (classIdentifier) {
+    const cleanClass = classIdentifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `std-${cleanNisn}-${cleanClass}`;
+  }
+  return `std-${cleanNisn}`;
 }
 
 /**
@@ -232,20 +260,23 @@ export async function batchSyncStudentsAndClasses(
   incomingStudents: Student[],
   incomingClasses: ClassRoom[]
 ) {
-  // 1. Fetch existing students in Firestore to check for matching NISNs
+  // 1. Fetch existing students in Firestore to check for matching NISNs + Class
   const existingSnap = await getDocs(collection(db, STUDENTS_COL));
-  const existingByNisn = new Map<string, { docId: string; data: Student }>();
+  const existingByKey = new Map<string, { docId: string; data: Student }>();
   existingSnap.forEach((d) => {
     const data = d.data() as Student;
     if (data.nisn) {
-      existingByNisn.set(data.nisn.trim().toLowerCase(), { docId: d.id, data });
+      const classKey = (data.className || data.classId || '').trim().toLowerCase();
+      const compoundKey = `${data.nisn.trim().toLowerCase()}_${classKey}`;
+      existingByKey.set(compoundKey, { docId: d.id, data });
     }
   });
 
-  // 2. Deduplicate incoming students by NISN
+  // 2. Deduplicate incoming students by NISN + Class
   const deduplicatedIncoming = new Map<string, Student>();
   for (const st of incomingStudents) {
-    const key = st.nisn.trim().toLowerCase();
+    const classKey = (st.className || st.classId || '').trim().toLowerCase();
+    const key = `${st.nisn.trim().toLowerCase()}_${classKey}`;
     const existing = deduplicatedIncoming.get(key);
     if (!existing) {
       deduplicatedIncoming.set(key, st);
@@ -265,8 +296,8 @@ export async function batchSyncStudentsAndClasses(
 
   for (const [key, inc] of deduplicatedIncoming.entries()) {
     const cleanNisn = inc.nisn.trim();
-    const targetDocId = getStudentDocId(cleanNisn);
-    const existingInDb = existingByNisn.get(key);
+    const targetDocId = getStudentDocId(cleanNisn, inc.classId || inc.className);
+    const existingInDb = existingByKey.get(key);
 
     let mergedStudent: Student;
     if (existingInDb) {
@@ -414,7 +445,10 @@ export async function commitStagedChangesToDb({
  */
 export async function saveStudentInDb(student: Student) {
   const cleanNisn = student.nisn.trim();
-  const targetDocId = getStudentDocId(cleanNisn);
+  const classKey = student.classId || student.className;
+  const targetDocId = student.id && student.id.startsWith('std-')
+    ? student.id
+    : getStudentDocId(cleanNisn, classKey);
 
   // If student had a different previous ID, delete the old document to prevent duplicates
   if (student.id && student.id !== targetDocId) {
@@ -632,6 +666,13 @@ export async function clearEmptyClassesInDb(activeClassNames: string[]): Promise
     const data = d.data() as ClassRoom;
     const nameKey = (data.name || '').toLowerCase().replace(/^(kelas|class)\s*/i, '').replace(/[^a-z0-9]/g, '');
     const idKey = d.id.toLowerCase().replace(/^(class-|kelas-)/i, '').replace(/[^a-z0-9]/g, '');
+
+    // Never delete predefined standard classes (7A IPA, 7B IPA, 7C IPA, 7D IPA, 7D TIK, 7E TIK)
+    const isDefaultClass = DEFAULT_CLASSES.some(
+      (dc) => dc.id === d.id || dc.name.toUpperCase() === (data.name || '').toUpperCase()
+    );
+    if (isDefaultClass) return;
+
     if (!activeNormalized.has(nameKey) && !activeNormalized.has(idKey)) {
       toDelete.push(d.ref);
     }
@@ -697,15 +738,17 @@ export async function deduplicateStudentsInDb(): Promise<{
     };
   }
 
-  // Group docs by lowercase trimmed NISN
+  // Group docs by lowercase trimmed NISN + Class
   const groups = new Map<string, { docId: string; data: Student }[]>();
   snap.forEach((d) => {
     const data = d.data() as Student;
-    const nisnKey = (data.nisn || '').trim().toLowerCase();
-    if (!nisnKey) return;
-    const list = groups.get(nisnKey) || [];
+    const nisn = (data.nisn || '').trim().toLowerCase();
+    if (!nisn) return;
+    const classKey = (data.className || data.classId || '').trim().toLowerCase();
+    const compoundKey = `${nisn}_${classKey}`;
+    const list = groups.get(compoundKey) || [];
     list.push({ docId: d.id, data });
-    groups.set(nisnKey, list);
+    groups.set(compoundKey, list);
   });
 
   // Also clean up any duplicate classes or empty classes with 0 students
@@ -725,7 +768,7 @@ export async function deduplicateStudentsInDb(): Promise<{
 
   for (const [key, docsList] of groups.entries()) {
     const cleanNisn = docsList[0].data.nisn.trim();
-    const targetDocId = getStudentDocId(cleanNisn);
+    const targetDocId = getStudentDocId(cleanNisn, docsList[0].data.classId || docsList[0].data.className);
 
     if (docsList.length > 1) {
       mergedCount++;
@@ -891,6 +934,47 @@ export async function saveSpreadsheetUrlInDb(url: string) {
     await setDoc(ref, { url, updatedAt: new Date().toISOString() }, { merge: true });
   } catch (err) {
     console.warn('Failed to save spreadsheet URL to Firestore:', err);
+  }
+}
+
+/**
+ * Delete Google Sheets URL from Firestore
+ */
+export async function deleteSpreadsheetUrlInDb(): Promise<void> {
+  try {
+    const ref = doc(db, SETTINGS_COL, SPREADSHEET_DOC);
+    await deleteDoc(ref);
+  } catch (err) {
+    console.warn('Failed to delete spreadsheet URL from Firestore:', err);
+  }
+}
+
+/**
+ * Real-time listener for saved spreadsheet URL in Firestore
+ */
+export function listenToSpreadsheetUrl(
+  onUpdate: (url: string) => void,
+  onError?: (err: Error) => void
+) {
+  try {
+    const ref = doc(db, SETTINGS_COL, SPREADSHEET_DOC);
+    return onSnapshot(
+      ref,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onUpdate(docSnap.data()?.url || '');
+        } else {
+          onUpdate('');
+        }
+      },
+      (error) => {
+        console.warn('Spreadsheet URL listener error:', error);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    console.warn('listenToSpreadsheetUrl failed:', err);
+    return () => {};
   }
 }
 

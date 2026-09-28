@@ -681,7 +681,9 @@ export default function App() {
             {(() => {
               const activeStudent =
                 currentUser.role === 'student'
-                  ? students.find((s) => s.nisn === currentUser.identifier) || currentUser.studentData
+                  ? (previewStudentId ? students.find((s) => s.id === previewStudentId && s.nisn === currentUser.identifier) : null) ||
+                    students.find((s) => s.nisn === currentUser.identifier) ||
+                    currentUser.studentData
                   : students.find((s) => s.id === previewStudentId) || students[0] || currentUser.studentData;
 
               if (!activeStudent) {
@@ -743,7 +745,7 @@ export default function App() {
             <div className="flex items-center space-x-2 font-bold">
               <span className="text-amber-300 font-extrabold tracking-wide">By : PAK MUSLIM, S.Pd</span>
               <span className="opacity-60">•</span>
-              <span className="italic">Guru Mata Pelajaran IPA</span>
+              <span className="italic">Guru Mata Pelajaran IPA & TIK</span>
             </div>
             <div className="text-emerald-400 font-extrabold">
               SMP Negeri 1 Bengkalis

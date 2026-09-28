@@ -8,22 +8,46 @@ export const DEFAULT_IPA_CONFIG: IpaGradeConfig = {
 
 export const DEFAULT_CLASSES: ClassRoom[] = [
   {
-    id: 'class-7a',
-    name: 'Kelas 7A',
+    id: 'class-7a-ipa',
+    name: '7A IPA',
     grade: '7',
-    homeroomTeacher: 'Budi Santoso, S.Pd.',
+    subject: 'IPA',
+    homeroomTeacher: 'Guru Mapel IPA',
   },
   {
-    id: 'class-7b',
-    name: 'Kelas 7B',
+    id: 'class-7b-ipa',
+    name: '7B IPA',
     grade: '7',
-    homeroomTeacher: 'Siti Aminah, M.Pd.',
+    subject: 'IPA',
+    homeroomTeacher: 'Guru Mapel IPA',
   },
   {
-    id: 'class-7c',
-    name: 'Kelas 7C',
+    id: 'class-7c-ipa',
+    name: '7C IPA',
     grade: '7',
-    homeroomTeacher: 'Drs. Ahmad Fauzi',
+    subject: 'IPA',
+    homeroomTeacher: 'Guru Mapel IPA',
+  },
+  {
+    id: 'class-7d-ipa',
+    name: '7D IPA',
+    grade: '7',
+    subject: 'IPA',
+    homeroomTeacher: 'Guru Mapel IPA',
+  },
+  {
+    id: 'class-7d-tik',
+    name: '7D TIK',
+    grade: '7',
+    subject: 'TIK',
+    homeroomTeacher: 'Guru Mapel TIK',
+  },
+  {
+    id: 'class-7e-tik',
+    name: '7E TIK',
+    grade: '7',
+    subject: 'TIK',
+    homeroomTeacher: 'Guru Mapel TIK',
   },
 ];
 
@@ -34,14 +58,14 @@ export const DEFAULT_TEACHER_CODES: TeacherCode[] = [
   {
     id: 'tc-admin123',
     code: 'ADMIN123',
-    name: 'Administrator & Koordinator IPA',
+    name: 'Administrator & Koordinator IPA & TIK',
     role: 'admin',
     createdAt: '2026-09-01T08:00:00Z',
   },
   {
     id: 'tc-guru123',
     code: 'GURU123',
-    name: 'Guru Mata Pelajaran IPA',
+    name: 'Guru Mata Pelajaran IPA & TIK',
     role: 'teacher',
     createdAt: '2026-09-01T08:00:00Z',
   },

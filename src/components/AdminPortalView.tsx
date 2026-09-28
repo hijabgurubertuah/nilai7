@@ -46,7 +46,10 @@ import {
 import {
   getSpreadsheetUrlFromDb,
   saveSpreadsheetUrlInDb,
+  deleteSpreadsheetUrlInDb,
+  listenToSpreadsheetUrl,
   listenToSystemLogs,
+  getStudentDocId,
 } from '../services/firestoreService';
 import { TeacherBarcodeModal } from './TeacherBarcodeModal';
 import { StudentBarcodeModal } from './StudentBarcodeModal';
@@ -126,7 +129,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Google Sheets Online Sync State
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+  const [savedSpreadsheetUrl, setSavedSpreadsheetUrl] = useState('');
   const [isFetchingSheet, setIsFetchingSheet] = useState(false);
+  const [isSavingUrl, setIsSavingUrl] = useState(false);
+  const [isDeletingUrl, setIsDeletingUrl] = useState(false);
+  const [showDeleteUrlConfirm, setShowDeleteUrlConfirm] = useState(false);
+  const [isSyncingAllToFirebase, setIsSyncingAllToFirebase] = useState(false);
 
   // Student Form (Add / Edit Modal)
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
@@ -180,13 +188,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   } | null>(null);
   const [isDeletingLoading, setIsDeletingLoading] = useState(false);
 
-  // Load saved spreadsheet URL from Firestore on mount
+  // Subscribe to real-time saved spreadsheet URL from Firestore
   useEffect(() => {
-    getSpreadsheetUrlFromDb().then((savedUrl) => {
-      if (savedUrl) {
-        setSpreadsheetUrl(savedUrl);
-      }
+    const unsubscribe = listenToSpreadsheetUrl((savedUrl) => {
+      setSavedSpreadsheetUrl(savedUrl || '');
+      setSpreadsheetUrl((prev) => (!prev ? (savedUrl || '') : prev));
     });
+    return () => unsubscribe();
   }, []);
 
   // System logs state
@@ -281,6 +289,48 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     return parseGoogleSheetsUrl(spreadsheetUrl);
   }, [spreadsheetUrl]);
 
+  // Save CSV / Spreadsheet link directly to Firebase
+  const handleSaveSpreadsheetUrl = async () => {
+    const cleanUrl = spreadsheetUrl.trim();
+    if (!cleanUrl) {
+      setErrorMessage('Masukkan atau tempelkan link Spreadsheet / CSV terlebih dahulu.');
+      return;
+    }
+
+    setIsSavingUrl(true);
+    setErrorMessage('');
+    try {
+      await saveSpreadsheetUrlInDb(cleanUrl);
+      setSavedSpreadsheetUrl(cleanUrl);
+      setSuccessMessage('✓ Link CSV/Spreadsheet berhasil disimpan ke database Firebase!');
+      setTimeout(() => setSuccessMessage(''), 4500);
+    } catch (err: any) {
+      console.error('Failed to save spreadsheet URL to Firestore:', err);
+      setErrorMessage(err.message || 'Gagal menyimpan link spreadsheet ke Firebase.');
+    } finally {
+      setIsSavingUrl(false);
+    }
+  };
+
+  // Delete CSV / Spreadsheet link from Firebase
+  const handleDeleteSpreadsheetUrl = async () => {
+    setIsDeletingUrl(true);
+    setErrorMessage('');
+    try {
+      await deleteSpreadsheetUrlInDb();
+      setSpreadsheetUrl('');
+      setSavedSpreadsheetUrl('');
+      setShowDeleteUrlConfirm(false);
+      setSuccessMessage('✓ Link CSV/Spreadsheet berhasil dihapus dari database Firebase.');
+      setTimeout(() => setSuccessMessage(''), 4500);
+    } catch (err: any) {
+      console.error('Failed to delete spreadsheet URL from Firestore:', err);
+      setErrorMessage(err.message || 'Gagal menghapus link spreadsheet dari Firebase.');
+    } finally {
+      setIsDeletingUrl(false);
+    }
+  };
+
   // Pull / Fetch data directly from Google Sheets Link
   const handleFetchSpreadsheet = async () => {
     const cleanUrl = spreadsheetUrl.trim();
@@ -311,12 +361,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         );
       }
 
-      // 4. Stage locally with anti-duplication (does NOT write to Firebase yet to save quota)
-      onSyncCsvData(result.students, result.classes);
+      // 4. Save to Firebase via onSyncCsvData
+      await onSyncCsvData(result.students, result.classes);
 
       setSuccessMessage(
-        `Berhasil menarik ${result.students.length} siswa ke memori lokal. Belum disimpan ke Firebase untuk menghemat kuota tulis harian. Klik tombol "Simpan ke Firebase" di atas jika sudah selesai.`
+        `✓ Berhasil menarik & menyinkronkan ${result.students.length} data siswa langsung ke database Firebase Firestore!`
       );
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       console.error('Error fetching spreadsheet:', err);
       setErrorMessage(
@@ -324,6 +375,28 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       );
     } finally {
       setIsFetchingSheet(false);
+    }
+  };
+
+  // Explicit Save / Sync all loaded students to Firebase Firestore
+  const handleSaveAllStudentsToFirebase = async () => {
+    if (students.length === 0) {
+      setErrorMessage('Belum ada data siswa untuk disimpan ke Firebase.');
+      return;
+    }
+    setIsSyncingAllToFirebase(true);
+    setErrorMessage('');
+    try {
+      await onSyncCsvData(students, classes);
+      setSuccessMessage(
+        `✓ Berhasil menyimpan dan menyinkronkan seluruh ${students.length} data siswa ke database Firebase Firestore!`
+      );
+      setTimeout(() => setSuccessMessage(''), 4500);
+    } catch (err: any) {
+      console.error('Failed to save students to Firebase:', err);
+      setErrorMessage(`Gagal menyimpan ke Firebase: ${err.message}`);
+    } finally {
+      setIsSyncingAllToFirebase(false);
     }
   };
 
@@ -340,9 +413,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setEditingStudent(null);
     setFormNisn('');
     setFormName('');
-    setFormClassName(classes[0]?.name || 'Kelas 7A');
+    setFormClassName(classes[0]?.name || '7A IPA');
     setFormScore(80);
-    setFormProject('Kreasi Daur Ulang Mandiri');
+    setFormProject('IPA Terpadu & TIK');
     setFormNotes('');
     setErrorMessage('');
     setIsStudentModalOpen(true);
@@ -370,29 +443,32 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       return;
     }
 
-    // Check if NISN already exists
-    const existingStudentWithNisn = students.find(
-      (s) => s.nisn.trim().toLowerCase() === cleanNisn.toLowerCase()
+    const classId = `class-${formClassName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+    // Check if student with NISN already exists in this specific class
+    const existingStudentInClass = students.find(
+      (s) =>
+        s.nisn.trim().toLowerCase() === cleanNisn.toLowerCase() &&
+        (s.className.toLowerCase() === formClassName.toLowerCase() || s.classId === classId)
     );
 
     setIsSavingStudent(true);
     setErrorMessage('');
 
-    const classId = `class-${formClassName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
     const studentId = editingStudent
       ? editingStudent.id
-      : (existingStudentWithNisn ? existingStudentWithNisn.id : `std-${cleanNisn.replace(/[^a-zA-Z0-9]/g, '')}`);
+      : (existingStudentInClass ? existingStudentInClass.id : getStudentDocId(cleanNisn, classId));
 
     const studentData: Student = {
-      ...(existingStudentWithNisn || {}),
+      ...(existingStudentInClass || {}),
       id: studentId,
       nisn: cleanNisn,
       name: cleanName,
       classId,
       className: formClassName,
       score: Math.max(0, Math.min(100, Math.round(formScore / 10) * 10)),
-      projectTitle: formProject || existingStudentWithNisn?.projectTitle || 'Kreasi Daur Ulang Mandiri',
-      notes: formNotes || existingStudentWithNisn?.notes || '',
+      projectTitle: formProject || existingStudentInClass?.projectTitle || 'IPA Terpadu & TIK',
+      notes: formNotes || existingStudentInClass?.notes || '',
       lastUpdated: new Date().toISOString(),
     };
 
@@ -400,8 +476,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       await onSaveStudent(studentData);
       setIsStudentModalOpen(false);
       setSuccessMessage(
-        existingStudentWithNisn && !editingStudent
-          ? `NISN "${cleanNisn}" sudah ada: Data siswa diperbarui langsung di Firebase secara real-time.`
+        existingStudentInClass && !editingStudent
+          ? `NISN "${cleanNisn}" sudah ada di kelas ini: Data siswa diperbarui langsung di Firebase secara real-time.`
           : editingStudent
           ? `Data siswa "${cleanName}" diperbarui di Firebase secara real-time.`
           : `Siswa "${cleanName}" berhasil ditambahkan ke Firebase Firestore.`
@@ -602,18 +678,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     reader.readAsText(file);
   };
 
-  const handleSyncManualFile = () => {
+  const handleSyncManualFile = async () => {
     if (!parsedData || parsedData.students.length === 0) return;
     setIsSyncingFile(true);
+    setErrorMessage('');
     try {
-      onSyncCsvData(parsedData.students, parsedData.classes);
+      await onSyncCsvData(parsedData.students, parsedData.classes);
       setSuccessMessage(
-        `Berhasil memuat ${parsedData.students.length} siswa ke memori lokal. Belum disimpan ke Firebase untuk menghemat kuota tulis. Klik "Simpan ke Firebase" jika sudah selesai.`
+        `✓ Berhasil memuat dan menyinkronkan ${parsedData.students.length} siswa langsung ke database Firebase Firestore!`
       );
       setParsedData(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
-      setErrorMessage(`Gagal memuat: ${err.message}`);
+      setErrorMessage(`Gagal memuat ke Firebase: ${err.message}`);
     } finally {
       setIsSyncingFile(false);
     }
@@ -991,6 +1069,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <span className="hidden sm:inline">Spreadsheet ↓</span>
               </button>
 
+              {/* Tombol Simpan Seluruh Siswa ke Firebase */}
+              <button
+                type="button"
+                onClick={handleSaveAllStudentsToFirebase}
+                disabled={isSyncingAllToFirebase || students.length === 0}
+                className="flex items-center justify-center space-x-1.5 px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer shadow-xs disabled:opacity-50 active:scale-95"
+                title="Simpan & sinkronkan seluruh data siswa yang tampil ke database Firebase Firestore"
+              >
+                <Save className={`w-3.5 h-3.5 ${isSyncingAllToFirebase ? 'animate-spin' : ''}`} />
+                <span>{isSyncingAllToFirebase ? 'Menyimpan...' : `Simpan ke Firebase (${students.length})`}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleOpenAddStudent}
@@ -1237,13 +1327,32 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </div>
 
             {/* Card Link Spreadsheet */}
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center space-x-1.5">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                  <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center space-x-1.5">
                     <LinkIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Link Spreadsheet (Google Sheets)</span>
+                    <span>Link Spreadsheet / CSV Siswa</span>
                   </h3>
+
+                  {/* Status Badge Firebase */}
+                  {savedSpreadsheetUrl ? (
+                    savedSpreadsheetUrl === spreadsheetUrl.trim() ? (
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>Tersimpan di Firebase</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                        <span>Link Baru (Belum Disimpan)</span>
+                      </span>
+                    )
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
+                      Belum Ada Link di Firebase
+                    </span>
+                  )}
                 </div>
 
                 {spreadsheetUrl && (
@@ -1260,26 +1369,110 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                  Link Spreadsheet / Google Sheets:
+                  Link Google Sheets / File CSV Online:
                 </label>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="relative">
                   <input
                     type="url"
                     value={spreadsheetUrl}
                     onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                    placeholder="https://docs.google.com/spreadsheets/d/..."
-                    className="flex-1 px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                    placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 text-slate-800 pr-10"
                   />
+                  {spreadsheetUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setSpreadsheetUrl('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title="Bersihkan kolom input"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Konfirmasi Hapus Link dari Firebase */}
+                {showDeleteUrlConfirm && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2 animate-fadeIn text-xs">
+                    <div className="flex items-center space-x-2 text-rose-800 font-semibold">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Hapus link spreadsheet ini dari database Firebase?</span>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteUrlConfirm(false)}
+                        className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg font-bold border border-slate-300 cursor-pointer text-xs"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteSpreadsheetUrl}
+                        disabled={isDeletingUrl}
+                        className="flex items-center space-x-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-black cursor-pointer text-xs shadow-xs"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{isDeletingUrl ? 'Menghapus...' : 'Ya, Hapus Link'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tombol Aksi: LINK FIREBASE & SINKRONISASI DATA SISWA */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {/* Tombol Simpan Link ke Firebase */}
+                  <button
+                    type="button"
+                    onClick={handleSaveSpreadsheetUrl}
+                    disabled={isSavingUrl || !spreadsheetUrl.trim() || (savedSpreadsheetUrl === spreadsheetUrl.trim())}
+                    className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    title="Simpan link CSV/Spreadsheet ini ke Firebase Firestore"
+                  >
+                    <Save className={`w-3.5 h-3.5 ${isSavingUrl ? 'animate-spin' : ''}`} />
+                    <span>{isSavingUrl ? 'Menyimpan Link...' : 'Simpan Link ke Firebase'}</span>
+                  </button>
+
+                  {/* Tombol Hapus Link dari Firebase */}
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteUrlConfirm(true)}
+                    disabled={isDeletingUrl || (!savedSpreadsheetUrl && !spreadsheetUrl.trim())}
+                    className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                    title="Hapus link CSV/Spreadsheet ini dari Firebase Firestore"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Hapus Link</span>
+                  </button>
+
+                  {/* Tombol Simpan Seluruh Data Siswa ke Firebase */}
+                  <button
+                    type="button"
+                    onClick={handleSaveAllStudentsToFirebase}
+                    disabled={isSyncingAllToFirebase || students.length === 0}
+                    className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3.5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer disabled:opacity-50 active:scale-95"
+                    title="Simpan seluruh data siswa yang ada di tabel ke database Firebase Firestore"
+                  >
+                    <Save className={`w-3.5 h-3.5 ${isSyncingAllToFirebase ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingAllToFirebase ? 'Menyimpan Siswa...' : `Simpan Semua Siswa (${students.length})`}</span>
+                  </button>
+
+                  {/* Tombol Tarik & Simpan Siswa Langsung ke Firebase */}
                   <button
                     type="button"
                     onClick={handleFetchSpreadsheet}
-                    disabled={isFetchingSheet}
-                    className="w-full sm:w-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 shadow-xs cursor-pointer disabled:opacity-50"
+                    disabled={isFetchingSheet || !spreadsheetUrl.trim()}
+                    className="w-full sm:w-auto sm:ml-auto flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer disabled:opacity-50 active:scale-95 ring-1 ring-slate-700"
+                    title="Tarik data siswa dari spreadsheet dan langsung simpan ke database Firebase Firestore"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isFetchingSheet ? 'animate-spin' : ''}`} />
-                    <span>{isFetchingSheet ? 'Menarik Data...' : 'Tarik Data ke Memori'}</span>
+                    <span>{isFetchingSheet ? 'Menarik & Menyimpan...' : 'Tarik & Simpan Siswa ke Firebase'}</span>
                   </button>
                 </div>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed pt-1">
+                  💡 <strong>Petunjuk:</strong> Klik <strong>"Tarik & Simpan Siswa ke Firebase"</strong> untuk menarik data siswa dari Google Sheets dan langsung menyimpannya ke database cloud Firebase Firestore. Jika data sudah ada di daftar siswa, Anda juga bisa menekan tombol <strong>"Simpan Semua Siswa"</strong> untuk menyinkronkannya kembali kapan saja.
+                </p>
               </div>
             </div>
 

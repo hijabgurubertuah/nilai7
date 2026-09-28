@@ -347,13 +347,13 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({
 
           <div className="min-w-0">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-emerald-200 block mb-0.5 opacity-90">
-              PENILAIAN MATA PELAJARAN IPA
+              PENILAIAN MATA PELAJARAN {(classroom.name || '').toUpperCase().includes('TIK') ? 'TIK' : 'IPA'}
             </span>
             <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white uppercase drop-shadow-xs truncate">
               {classroom.name.toUpperCase()}
             </h2>
             <p className="text-xs sm:text-sm text-emerald-100 font-medium truncate pt-0.5">
-              {classStudents.length} Siswa • Guru: {classroom.homeroomTeacher || 'Guru IPA'}
+              {classStudents.length} Siswa • Guru: {classroom.homeroomTeacher || ((classroom.name || '').toUpperCase().includes('TIK') ? 'Guru TIK' : 'Guru IPA')}
             </p>
           </div>
         </div>

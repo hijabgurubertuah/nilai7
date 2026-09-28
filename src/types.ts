@@ -35,6 +35,7 @@ export interface ClassRoom {
   id: string;
   name: string;
   grade: string;
+  subject?: 'IPA' | 'TIK' | string;
   homeroomTeacher?: string;
   studentCount?: number;
   averageScore?: number;

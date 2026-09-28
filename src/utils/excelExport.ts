@@ -161,12 +161,14 @@ export function exportAllClassesToExcel(
  * Download sample CSV template for teachers to fill in Google Sheets / Excel
  */
 export function downloadSampleCsvTemplate() {
-  const headers = ['nisn', 'nama', 'kelas', 'nilai_tugas', 'nilai_ulangan', 'nilai_sikap', 'materi_ipa', 'catatan'];
+  const headers = ['nisn', 'nama', 'kelas', 'nilai_tugas', 'nilai_ulangan', 'nilai_sikap', 'materi', 'catatan'];
   const sampleRows = [
-    ['0081234001', 'Aditya Pratama Putra', 'Kelas 7A', '85', '88', '90', 'Klasifikasi Makhluk Hidup', 'Sangat teliti saat praktikum mikroskop'],
-    ['0081234002', 'Aisyah Nur Salsabila', 'Kelas 7A', '90', '92', '95', 'Zat dan Perubahannya', 'Memahami konsep fisika & kimia dengan baik'],
-    ['0082345001', 'Hafiz Al-Fikri', 'Kelas 7B', '80', '82', '85', 'Suhu, Kalor, dan Pemuaian', 'Aktif dalam percobaan kelompok'],
-    ['0073456001', 'Oki Kurniawan', 'Kelas 7C', '85', '80', '85', 'Tata Surya dan Bumi', 'Bagus dalam pembuatan model planet'],
+    ['0081234001', 'Aditya Pratama Putra', '7A IPA', '85', '88', '90', 'Klasifikasi Makhluk Hidup', 'Sangat teliti saat praktikum mikroskop'],
+    ['0081234002', 'Aisyah Nur Salsabila', '7B IPA', '90', '92', '95', 'Zat dan Perubahannya', 'Memahami konsep fisika & kimia dengan baik'],
+    ['0082345001', 'Hafiz Al-Fikri', '7C IPA', '80', '82', '85', 'Suhu, Kalor, dan Pemuaian', 'Aktif dalam percobaan kelompok'],
+    ['0073456001', 'Oki Kurniawan', '7D IPA', '85', '80', '85', 'Tata Surya dan Bumi', 'Bagus dalam pembuatan model planet'],
+    ['0073456001', 'Oki Kurniawan', '7D TIK', '90', '88', '92', 'Perangkat Keras Komputer', 'Mahir mengoperasikan aplikasi komputer'],
+    ['0073456002', 'Rian Hidayat', '7E TIK', '88', '85', '90', 'Jaringan Komputer & Internet', 'Cepat memahami materi internet'],
   ];
 
   const csvContent = [
@@ -178,7 +180,7 @@ export function downloadSampleCsvTemplate() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', 'template_nilai_mata_pelajaran_ipa.csv');
+  link.setAttribute('download', 'template_nilai_ipa_dan_tik.csv');
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

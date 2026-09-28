@@ -57,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'Panel Admin'
                     : activePage === 'student-view'
                     ? 'Pratinjau Siswa'
-                    : 'Guru Mapel IPA'}
+                    : 'Guru Mapel IPA & TIK'}
                 </span>
                 <span className="hidden sm:inline-flex items-center space-x-1 text-[11px] text-emerald-200">
                   <span
@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
               <h1 className="text-xs sm:text-base font-black tracking-tight text-white leading-tight truncate pt-0.5">
-                E-Penilaian IPA
+                E-Penilaian IPA & TIK
               </h1>
             </div>
           </div>

@@ -49,7 +49,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
       onLoginSuccess({
         role: 'admin',
         identifier: 'ADMIN123',
-        name: 'Administrator & Koordinator IPA',
+        name: 'Administrator & Koordinator IPA & TIK',
       });
       return;
     }
@@ -60,7 +60,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
       onLoginSuccess({
         role: 'teacher',
         identifier: 'GURU123',
-        name: 'Guru Mata Pelajaran IPA',
+        name: 'Guru Mata Pelajaran IPA & TIK',
       });
       return;
     }
@@ -211,7 +211,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           
           <div className="font-extrabold tracking-wider uppercase block leading-snug max-w-xs mx-auto">
             <div className="text-xs sm:text-sm text-teal-100 font-black">
-              Mata Pelajaran IPA
+              Mata Pelajaran IPA & TIK
             </div>
             <div className="text-[11px] sm:text-xs text-amber-300 font-extrabold mt-0.5 tracking-wide">
               Ulangan • Tugas • Sikap

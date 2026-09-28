@@ -161,29 +161,29 @@ export function parseStudentCsv(csvText: string): ParsedCsvResult {
 
     // Standardize class name & class ID consistently
     const cleanClassRaw = rawKelas.replace(/^(kelas|class)\s*/i, '').trim();
-    const sanitizedClassName = cleanClassRaw
-      ? (cleanClassRaw.toLowerCase().startsWith('kelas ') ? cleanClassRaw : `Kelas ${cleanClassRaw.toUpperCase()}`)
-      : 'Kelas 7A';
-    const cleanClassKey = (cleanClassRaw.toLowerCase().replace(/[^a-z0-9]/g, '')) || '7a';
+    const sanitizedClassName = cleanClassRaw ? cleanClassRaw.toUpperCase() : '7A IPA';
+    const cleanClassKey = (cleanClassRaw.toLowerCase().replace(/[^a-z0-9]/g, '')) || '7aipa';
     const classId = `class-${cleanClassKey}`;
 
     if (!classMap.has(classId)) {
       const gradeMatch = sanitizedClassName.match(/\d+/);
       const grade = gradeMatch ? gradeMatch[0] : '7';
+      const subject = sanitizedClassName.includes('TIK') ? 'TIK' : 'IPA';
       classMap.set(classId, {
         id: classId,
         name: sanitizedClassName,
         grade,
+        subject,
       });
     }
 
     const cleanNisn = nisn.replace(/[^a-zA-Z0-9]/g, '');
-    const studentId = `std-${cleanNisn || `row-${i}`}`;
-    const nisnKey = cleanNisn.toLowerCase();
+    const studentId = `std-${cleanNisn}-${cleanClassKey}`;
+    const studentKey = `${cleanNisn.toLowerCase()}_${classId}`;
 
-    const existingStudent = studentMap.get(nisnKey);
+    const existingStudent = studentMap.get(studentKey);
     if (existingStudent) {
-      studentMap.set(nisnKey, {
+      studentMap.set(studentKey, {
         ...existingStudent,
         name,
         classId,
@@ -197,7 +197,7 @@ export function parseStudentCsv(csvText: string): ParsedCsvResult {
         lastUpdated: new Date().toISOString(),
       });
     } else {
-      studentMap.set(nisnKey, {
+      studentMap.set(studentKey, {
         id: studentId,
         nisn,
         name,

@@ -15,6 +15,7 @@ import {
   X,
   ExternalLink,
   Link as LinkIcon,
+  Save,
 } from 'lucide-react';
 import { ClassRoom, Student, TeacherCode } from '../types';
 import { parseStudentCsv, ParsedCsvResult } from '../utils/csvParser';
@@ -26,6 +27,7 @@ import {
 import {
   getSpreadsheetUrlFromDb,
   saveSpreadsheetUrlInDb,
+  deleteSpreadsheetUrlInDb,
 } from '../services/firestoreService';
 
 interface AdminSyncModalProps {
@@ -55,6 +57,8 @@ export const AdminSyncModal: React.FC<AdminSyncModalProps> = ({
   // Google Sheets state
   const [sheetUrl, setSheetUrl] = useState('');
   const [isFetchingSheet, setIsFetchingSheet] = useState(false);
+  const [isSavingUrl, setIsSavingUrl] = useState(false);
+  const [isDeletingUrl, setIsDeletingUrl] = useState(false);
 
   // CSV states
   const [parsedData, setParsedData] = useState<ParsedCsvResult | null>(null);
@@ -118,6 +122,38 @@ export const AdminSyncModal: React.FC<AdminSyncModalProps> = ({
     const parsed = parseGoogleSheetsUrl(sheetUrl);
     const target = parsed.editUrl || sheetUrl.trim();
     if (target) window.open(target, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSaveUrl = async () => {
+    const cleanUrl = sheetUrl.trim();
+    if (!cleanUrl) {
+      setErrorMessage('Masukkan link spreadsheet terlebih dahulu.');
+      return;
+    }
+    setIsSavingUrl(true);
+    setErrorMessage('');
+    try {
+      await saveSpreadsheetUrlInDb(cleanUrl);
+      setSyncSuccessMsg('✓ Link Spreadsheet berhasil disimpan ke Firebase!');
+    } catch {
+      setErrorMessage('Gagal menyimpan link spreadsheet ke Firebase.');
+    } finally {
+      setIsSavingUrl(false);
+    }
+  };
+
+  const handleDeleteUrl = async () => {
+    setIsDeletingUrl(true);
+    setErrorMessage('');
+    try {
+      await deleteSpreadsheetUrlInDb();
+      setSheetUrl('');
+      setSyncSuccessMsg('✓ Link Spreadsheet berhasil dihapus dari Firebase.');
+    } catch {
+      setErrorMessage('Gagal menghapus link spreadsheet dari Firebase.');
+    } finally {
+      setIsDeletingUrl(false);
+    }
   };
 
   // Handle file select
@@ -319,7 +355,27 @@ export const AdminSyncModal: React.FC<AdminSyncModalProps> = ({
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 />
 
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveUrl}
+                    disabled={isSavingUrl || !sheetUrl.trim()}
+                    className="py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className={`w-3.5 h-3.5 ${isSavingUrl ? 'animate-spin' : ''}`} />
+                    <span>{isSavingUrl ? 'Menyimpan...' : 'Simpan Link ke Firebase'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteUrl}
+                    disabled={isDeletingUrl || !sheetUrl.trim()}
+                    className="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold transition-colors flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-40"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Hapus Link</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleFetchOnlineSheet}

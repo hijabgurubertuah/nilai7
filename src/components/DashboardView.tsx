@@ -149,17 +149,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <span>REKAP NILAI IPA</span>
+          <span>REKAP NILAI IPA & TIK</span>
         </button>
       </div>
 
       {/* TAB 1: DAFTAR SEMUA KELAS */}
       {teacherTab === 'classes' && (
         <div className="pt-2">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
             {classStats.map((cls, idx) => {
               const shortName = cls.name.replace(/^Kelas\s+/i, '').trim();
-              const colorScheme = CLASS_GRADIENTS[idx % CLASS_GRADIENTS.length];
+              const isTik = shortName.toUpperCase().includes('TIK');
+              const colorScheme = isTik
+                ? {
+                    gradient: 'from-blue-700 via-indigo-700 to-cyan-900',
+                    border: 'border-cyan-400/50',
+                    glow: 'bg-cyan-400/20',
+                  }
+                : CLASS_GRADIENTS[idx % CLASS_GRADIENTS.length];
 
               return (
                 <button
@@ -171,12 +178,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors pointer-events-none" />
                   <div className={`absolute -right-4 -bottom-4 w-20 h-20 ${colorScheme.glow} rounded-full blur-xl pointer-events-none`} />
 
-                  <span className="font-black text-xl sm:text-3xl tracking-tight drop-shadow-xs group-hover:scale-105 transition-transform">
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/25 text-[9px] font-black uppercase tracking-wider text-white backdrop-blur-xs">
+                    {isTik ? '💻 TIK' : '🌿 IPA'}
+                  </div>
+
+                  <span className="font-black text-xl sm:text-2xl lg:text-3xl tracking-tight drop-shadow-xs group-hover:scale-105 transition-transform mt-2">
                     {shortName || cls.name}
                   </span>
 
-                  <div className="mt-1 px-2 py-0.5 rounded-full bg-white/20 text-[10px] sm:text-xs font-bold backdrop-blur-xs">
-                    Rata IPA: {cls.averageScore}
+                  <div className="mt-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] sm:text-xs font-bold backdrop-blur-xs">
+                    Rata: {cls.averageScore}
                   </div>
                 </button>
               );

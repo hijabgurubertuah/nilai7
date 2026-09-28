@@ -127,6 +127,11 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
     return `Ulangan ${idx + 1}`;
   };
 
+  const isTik = (student.className || '').toUpperCase().includes('TIK');
+  const myClasses = studentsList && student.nisn
+    ? studentsList.filter((s) => s.nisn.trim().toLowerCase() === student.nisn.trim().toLowerCase())
+    : [];
+
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 space-y-4 animate-fadeIn">
       {/* Banner Khusus Mode Pratinjau Siswa untuk Admin & Guru */}
@@ -185,7 +190,43 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
         </div>
       )}
 
-      {/* PALING ATAS: KOTAK NILAI AKHIR MATA PELAJARAN IPA */}
+      {/* Subject switcher if student is enrolled in multiple classes (e.g. 7D IPA and 7D TIK) */}
+      {myClasses.length > 1 && onSelectStudent && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white rounded-2xl border-2 border-emerald-300 shadow-sm animate-fadeIn">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+              Pilih Mata Pelajaran:
+            </span>
+            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+              NISN: {student.nisn}
+            </span>
+          </div>
+          <div className="flex items-center space-x-2 flex-wrap">
+            {myClasses.map((cl) => {
+              const clIsTik = (cl.className || '').toUpperCase().includes('TIK');
+              const isSelected = cl.id === student.id;
+              return (
+                <button
+                  key={cl.id}
+                  type="button"
+                  onClick={() => onSelectStudent(cl.id)}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+                    isSelected
+                      ? (clIsTik ? 'bg-indigo-600 text-white ring-2 ring-indigo-400' : 'bg-emerald-700 text-white ring-2 ring-emerald-400')
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <span>{clIsTik ? '💻' : '🌿'}</span>
+                  <span>{cl.className}</span>
+                  {isSelected && <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded-full">Aktif</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* PALING ATAS: KOTAK NILAI AKHIR MATA PELAJARAN IPA / TIK */}
       <div className={`rounded-3xl p-5 sm:p-7 pr-12 sm:pr-14 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4 relative overflow-hidden ${heroStyle.heroBg}`}>
         <div className="text-center sm:text-left space-y-1.5 z-10 min-w-0 flex-1">
           <div className={`leading-tight uppercase ${heroStyle.subtext}`}>
@@ -193,7 +234,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
               RAPOR PENILAIAN
             </span>
             <span className="text-[11px] sm:text-xs font-black tracking-wider block opacity-95">
-              MATA PELAJARAN IPA (ILMU PENGETAHUAN ALAM)
+              MATA PELAJARAN {isTik ? 'TIK (TEKNOLOGI INFORMASI & KOMUNIKASI)' : 'IPA (ILMU PENGETAHUAN ALAM)'}
             </span>
             <span className="text-[10px] font-bold tracking-widest block opacity-85 mt-0.5">
               SMP NEGERI 1 BENGKALIS
@@ -206,14 +247,14 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
             NISN: <strong>{student.nisn}</strong> • {student.className}
           </div>
           <div className={`text-xs mt-1 font-semibold ${heroStyle.subtext}`}>
-            Topik: {student.projectTitle || 'IPA Terpadu'}
+            Topik: {student.projectTitle || (isTik ? 'Informatika & Komputer' : 'IPA Terpadu')}
           </div>
         </div>
 
         {/* Kotak Nilai Akhir Besar */}
         <div className="flex flex-col items-center justify-center bg-black/15 backdrop-blur-md px-6 py-3.5 rounded-2xl border border-white/20 min-w-[170px] z-10 shrink-0">
           <div className="text-[11px] font-black uppercase tracking-wider opacity-90 mb-0.5">
-            Nilai Akhir IPA
+            Nilai Akhir {isTik ? 'TIK' : 'IPA'}
           </div>
           <div className="text-4xl sm:text-5xl font-black tracking-tight">
             {grades.finalScore}
